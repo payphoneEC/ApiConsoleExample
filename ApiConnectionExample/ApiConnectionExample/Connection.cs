@@ -116,6 +116,58 @@ namespace ApiConnectionExample
             }
         }
 
-        
+        /// <summary>
+        /// Obtiene el token de autenticación necesario para la comunicación con PayPhone
+        /// </summary>
+        public TokenResponseModel GetToken(string companyCode = null)
+        {
+            try
+            {
+                var request = HttpWebRequest.Create(Configurations.ResourcePath + "/token");
+                //client.DefaultRequestHeaders.Accept.Clear();
+                //client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded"));
+                var tokenRequest = new TokenRequestModel()
+                {
+                    client_id = Configurations.ClientId,
+                    client_secret = Configurations.ClientSecret,
+                    company_code = companyCode,
+                    grant_type = "client_credentials"
+                };
+
+                var postData = tokenRequest.ToString();
+                var byteData = Encoding.UTF8.GetBytes(postData);
+
+                request.Method = WebRequestMethods.Http.Post;
+                request.ContentType = "application/json";
+                request.ContentLength = byteData.Length;
+
+                var reqStream = request.GetRequestStream();
+                reqStream.Write(byteData, 0, byteData.Length);
+                reqStream.Close();
+
+                StreamReader postResult;
+
+                var response = (HttpWebResponse)request.GetResponse();
+                postResult = new StreamReader(response.GetResponseStream());
+
+                var responseForServer = postResult.ReadToEnd();
+
+                var resultObject = _jsonConversion.JsonToObject<TokenResponseModel>(responseForServer);
+                response.Close();
+                postResult.Close();
+
+                return resultObject;
+            }
+            catch (WebException e)
+            {
+                throw e.ThrowPayPhoneException(_jsonConversion);
+            }
+            catch (Exception e)
+            {
+                throw e.ThrowException();
+            }
+        }
+
+
     }
 }

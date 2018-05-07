@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ApiConnectionExample
 {
@@ -53,7 +49,7 @@ namespace ApiConnectionExample
                         //Asigno la transaccion
                         Console.Write("Insert your phone number: ");
                         var phoneNumber = Console.ReadLine();
-                        condition = ServiceLayer.SetAndSendTransaction(phoneNumber, regionCode);
+                        condition = ServiceLayer.Sale(phoneNumber, regionCode);
 
                         break;
                     case ConsoleKey.D2:
@@ -86,21 +82,7 @@ namespace ApiConnectionExample
                         //Set the transaction with document id
                         Console.Write("Insert your document id: ");
                         var nickname = Console.ReadLine();
-                        condition = ServiceLayer.SetAndSendTransactionByNickName(nickname, regionCode);
-                        break;
-                    case ConsoleKey.D5:
-                    case ConsoleKey.NumPad5:
-                        //Get regions
-                        ServiceLayer.GetRegions();
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Region code of phone number is listed next to the name of each country");
-                        Console.ResetColor();
-                        Console.Write("Enter the region code above: ");
-                        regionCode = Console.ReadLine();
-                        //Asigno la transaccion
-                        Console.Write("Insert your document id: ");
-                        var nick = Console.ReadLine();
-                        condition = ServiceLayer.SendTransactionByNickname(nick, regionCode);
+                        condition = ServiceLayer.SaleByNickName(nickname, regionCode);
                         break;
                     case ConsoleKey.D6:
                     case ConsoleKey.NumPad6:
@@ -140,7 +122,7 @@ namespace ApiConnectionExample
                         } while (string.IsNullOrEmpty(idTx));
 
                         //Request transaction status
-                        ServiceLayer.StatusTransaction(long.Parse(idTx));
+                        ServiceLayer.GetStatusTransaction(long.Parse(idTx));
                         break;
                     case ConsoleKey.D9:
                     case ConsoleKey.NumPad9:
@@ -246,7 +228,7 @@ namespace ApiConnectionExample
                         case ConsoleKey.D1:
                         case ConsoleKey.NumPad1:
                             //Get transaction status by transaction id
-                            ServiceLayer.StatusTransaction(ServiceLayer.Id);
+                            ServiceLayer.GetStatusTransaction(ServiceLayer.Id);
                             break;
                         case ConsoleKey.D2:
                         case ConsoleKey.NumPad2:
