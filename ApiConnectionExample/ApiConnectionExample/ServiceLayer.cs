@@ -20,31 +20,9 @@ namespace ApiConnectionExample
         private static long _reimbursmentId;
         public static bool Approved;
         private static string _extTxId = "";
-        private static string _ruc = "0190166260001"; //0190409759001
+        private static string _ruc = "0190402452001"; //0190409759001
 
-        //Creaate a dummy data for send to PayPhone
-        private static readonly TransactionRequestModel Data = new TransactionRequestModel()
-        {
-            //Total amount to send
-            Amount = 65241,
-            //Total amount of products that charge taxes without taxes
-            AmountWithTax = 0,
-            //Total amount of product that not charge taxes
-            AmountWithoutTax = 65241,
-            //Total taxes generated for AmountWithTax
-            Tax = 0,
-            //Identifier of transaction for this example (is id of transaction in ower application) 
-            ClientTransactionId = Guid.NewGuid().ToString(),
-            //Time zone for application
-            TimeZone = -5,
-            //Latitude fr store
-            Lat = "-0.170315",
-            //Longitude for store
-            Lng = "-78.489632",
-            //Store id
-            //StoreId = "d8383302-7afe-4f45-8f91-df65995ed28a"
-            StoreId = "f4781cf6-af17-46ac-ad22-ecbac1805836"
-        };
+        
 
         #region Estos métodos lo pueden usar todos los comercios 
 
@@ -69,11 +47,7 @@ namespace ApiConnectionExample
             catch (PayPhoneWebException e)
             {
                 //All call make to PayPhone need to be inside a try catch
-                Console.Write($"{e.StatusCode} - ");
-                foreach (var errorResponseModel in e.ErrorList)
-                {
-                    Console.WriteLine(errorResponseModel.Message);
-                }
+                PrintErrors(e);
             }
         }
 
@@ -82,14 +56,12 @@ namespace ApiConnectionExample
         /// </summary>
         /// <param name="phoneNumber">Phone number of customer</param>
         /// <param name="regionCode">Phone number region code</param>
-        public static bool Sale(string phoneNumber, string regionCode)
+        public static bool Sale(TransactionRequestModel data)
         {
             try
             {
-                Data.PhoneNumber = phoneNumber;
-                Data.CountryCode = regionCode;
-
-                var tx = connection.PostCall<TransactionResponseModel>("/api/Sale", Data, Configurations.Lang);
+                data.ChargeByNickName = false;
+                var tx = connection.PostCall<TransactionResponseModel>("/api/Sale", data, Configurations.Lang);
                 Id = tx.TransactionId;
                 Console.Clear();
                 Console.WriteLine("Transaction Id " + tx.TransactionId);
@@ -102,16 +74,10 @@ namespace ApiConnectionExample
                 if (RefreshToken(e))
                 {
                     //Make the same call again after restore the invalid token for new one
-                    return Sale(phoneNumber, regionCode);
+                    return Sale(data);
                 }
 
-                Console.Write($"{e.StatusCode} - ");
-                foreach (var errorResponseModel in e.ErrorList)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine(errorResponseModel.Message);
-                    Console.ResetColor();
-                }
+                PrintErrors(e);
 
                 return false;
 
@@ -131,16 +97,13 @@ namespace ApiConnectionExample
         /// </summary>
         /// <param name="documentId">Document id of PayPhone user</param>
         /// <param name="regionCode">Region Phone Number Code</param>
-        public static bool SaleByNickName(string documentId, string regionCode)
+        public static bool SaleByNickName(TransactionRequestModel data)
         {
             try
             {
-                Data.ChargeByNickName = true;
-                Data.CountryCode = regionCode;
-                Data.NickName = documentId;
-
+                data.ChargeByNickName = true;
                 //Send trasnaction but in this case we use the document id insert by user when he registered in PayPhone 
-                var tx = connection.PostCall<TransactionResponseModel>("/api/Sale", Data, Configurations.Lang);
+                var tx = connection.PostCall<TransactionResponseModel>("/api/Sale", data, Configurations.Lang);
                 //Save PayPhone transaction id for get status of transaction
                 Id = tx.TransactionId;
                 Console.Clear();
@@ -154,16 +117,10 @@ namespace ApiConnectionExample
                 if (RefreshToken(e))
                 {
                     //Make the same call again after restore the invalid token for new one
-                    return SaleByNickName(documentId, regionCode);
+                    return SaleByNickName(data);
                 }
 
-                Console.Write($"{e.StatusCode} - ");
-                foreach (var errorResponseModel in e.ErrorList)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine(errorResponseModel.Message);
-                    Console.ResetColor();
-                }
+                PrintErrors(e);
 
                 return false;
             }
@@ -211,7 +168,7 @@ namespace ApiConnectionExample
                     Console.WriteLine($"Email {tx.Email}");
                     Console.WriteLine($"Document {tx.Document}");
                     //Check if transaction have taxes 
-                    if (tx.Taxes.Any())
+                    if (tx.Taxes != null && tx.Taxes.Any())
                     {
                         //SUM all store applicable taxes
                         var tariff = tx.Taxes.Sum(tax => decimal.Divide(tax.Amount, 100));
@@ -225,7 +182,7 @@ namespace ApiConnectionExample
                     //otherwise access to transaction message which describes what happened
                     var pending = tx;
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine(pending.Message);
+                    Console.WriteLine(pending.TransactionStatus);
                     Console.ResetColor();
                 }
             }
@@ -236,11 +193,10 @@ namespace ApiConnectionExample
                 if (RefreshToken(e))
                 {
                     //Make the same call again after restore the invalid token for new one
-                    GetStatusTransaction(Id);
+                    GetStatusTransaction(txId);
                 }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error has ocurred " + e.ErrorList.ElementAt(0).Message);
-                Console.ResetColor();
+
+                PrintErrors(e);
             }
             catch (Exception e)
             {
@@ -255,52 +211,57 @@ namespace ApiConnectionExample
         /// <summary>
         /// Get transaction status by client transaction id
         /// </summary>
-        public static void GetStatusByClientTransactionId()
+        public static void GetStatusByClientTransactionId(string clientId)
         {
             try
             {
                 //Request for transaction status by client transaction id
-                var response = connection.GetCall<TransactionResultResponseModel>($"/api/Sale/client/{_extTxId}", Configurations.Lang);
+                var result = connection.GetCall<List<TransactionResultResponseModel>>($"/api/Sale/client/{clientId}", Configurations.Lang);
                 if (_status == (int)TransactionStatus.Approved)
                 {
                     Approved = true;
                 }
-                //Check status of transaction
-                if (response.StatusCode == (int)TransactionStatus.Approved || response.StatusCode == (int)TransactionStatus.Canceled)
-                {
-                    //If transaction was approved or cancelled cast the object ResultResponseModel for access to transaction data
-                    Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine($"Codigo autorizacion {response.AuthorizationCode}");
-                    Console.WriteLine($"Mensaje {response.Message}");
-                    Console.WriteLine($"Telefono {response.PhoneNumber}");
-                    Console.WriteLine($"Bin {response.Bin}");
-                    Console.WriteLine($"Deferred {response.Deferred}");
-                    Console.WriteLine($"Deferred Message {response.DeferredMessage}");
-                    Console.WriteLine($"Amount {response.Amount}");
-                    Console.WriteLine($"Deferred Message {response.DeferredMessage}");
-                    Console.WriteLine($"Deferred Code {response.DeferredCode}");
-                    Console.WriteLine($"Card Brand {response.CardBrand}");
-                    Console.WriteLine($"Card Type {response.CardType}");
-                    Console.WriteLine($"Email {response.Email}");
-                    Console.WriteLine($"Document {response.Document}");
-                    //Check if transaction have taxes 
-                    if (response.Taxes.Any())
-                    {
-                        //SUM all store applicable taxes
-                        var tariff = response.Taxes.Sum(tax => decimal.Divide(tax.Amount, 100));
-                        Console.WriteLine($"Tarifa {tariff}");
-                    }
 
-                    Console.ResetColor();
-                }
-                else
+                foreach (var response in result)
                 {
-                    //otherwise access to transaction message which describes what happened
-                    var pending = response;
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine(pending.Message);
-                    Console.ResetColor();
+                    //Check status of transaction
+                    if (response.StatusCode == (int)TransactionStatus.Approved || response.StatusCode == (int)TransactionStatus.Canceled)
+                    {
+                        //If transaction was approved or cancelled cast the object ResultResponseModel for access to transaction data
+                        Console.ForegroundColor = ConsoleColor.DarkGreen;
+                        Console.WriteLine($"Codigo autorizacion {response.AuthorizationCode}");
+                        Console.WriteLine($"Mensaje {response.Message}");
+                        Console.WriteLine($"Telefono {response.PhoneNumber}");
+                        Console.WriteLine($"Bin {response.Bin}");
+                        Console.WriteLine($"Deferred {response.Deferred}");
+                        Console.WriteLine($"Deferred Message {response.DeferredMessage}");
+                        Console.WriteLine($"Amount {response.Amount}");
+                        Console.WriteLine($"Deferred Message {response.DeferredMessage}");
+                        Console.WriteLine($"Deferred Code {response.DeferredCode}");
+                        Console.WriteLine($"Card Brand {response.CardBrand}");
+                        Console.WriteLine($"Card Type {response.CardType}");
+                        Console.WriteLine($"Email {response.Email}");
+                        Console.WriteLine($"Document {response.Document}");
+                        //Check if transaction have taxes 
+                        if (response.Taxes != null && response.Taxes.Any())
+                        {
+                            //SUM all store applicable taxes
+                            var tariff = response.Taxes.Sum(tax => decimal.Divide(tax.Amount, 100));
+                            Console.WriteLine($"Tarifa {tariff}");
+                        }
+
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        //otherwise access to transaction message which describes what happened
+                        var pending = response;
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine(pending.TransactionStatus);
+                        Console.ResetColor();
+                    }
                 }
+                
             }
             catch (PayPhoneWebException e)
             {
@@ -309,11 +270,10 @@ namespace ApiConnectionExample
                 if (RefreshToken(e))
                 {
                     //Make the same call again after restore the invalid token for new one
-                    GetStatusByClientTransactionId();
+                    GetStatusByClientTransactionId(clientId);
                 }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Exception " + e.ErrorList.ElementAt(0).Message);
-                Console.ResetColor();
+
+                PrintErrors(e);
             }
             catch (Exception e)
             {
@@ -389,11 +349,10 @@ namespace ApiConnectionExample
                 if (RefreshToken(e))
                 {
                     //Make the same call again after restore the invalid token for new one
-                    Annulment(Id);
+                    Annulment(txId);
                 }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"{e.StatusCode } - {e.ErrorList.ElementAt(0).Message}");
-                Console.ResetColor();
+
+                PrintErrors(e);
             }
             catch (Exception e)
             {
@@ -438,11 +397,10 @@ namespace ApiConnectionExample
                 if (RefreshToken(e))
                 {
                     //Make the same call again after restore the invalid token for new one
-                    GetAnnulmentStatus(AnnulmentId);
+                    GetAnnulmentStatus(idAnnul);
                 }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"{e.StatusCode } - {e.ErrorList.ElementAt(0).Message}");
-                Console.ResetColor();
+
+                PrintErrors(e);
             }
             catch (Exception e)
             {
@@ -481,9 +439,8 @@ namespace ApiConnectionExample
                     //Make the same call again after restore the invalid token for new one
                     AnnulmentByClientId(clientId);
                 }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"{e.StatusCode } - {e.ErrorList.ElementAt(0).Message}");
-                Console.ResetColor();
+
+                PrintErrors(e);
             }
             catch (Exception e)
             {
@@ -530,9 +487,8 @@ namespace ApiConnectionExample
                     //Make the same call again after restore the invalid token for new one
                     GetAnnulmentStatusByClientId(clientId);
                 }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"{e.StatusCode } - {e.ErrorList.ElementAt(0).Message}");
-                Console.ResetColor();
+
+                PrintErrors(e);
             }
             catch (Exception e)
             {
@@ -581,9 +537,8 @@ namespace ApiConnectionExample
                     //Make the same call again after restore the invalid token for new one
                     Reimbursemet(txId);
                 }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"{e.StatusCode } - {e.ErrorList.ElementAt(0).Message}");
-                Console.ResetColor();
+
+                PrintErrors(e);
             }
             catch (Exception e)
             {
@@ -597,13 +552,13 @@ namespace ApiConnectionExample
         /// <summary>
         /// Send request for reimbursement by client transaction id
         /// </summary>
-        public static void ReimbursemetByClientTransactionId()
+        public static void ReimbursemetByClientTransactionId(string clientId)
         {
             try
             {
                 var cancellation = new CancellationByClientRequestModel
                 {
-                    ClientId = Data.ClientTransactionId
+                    ClientId = clientId
                 };
                 //Send reimbursement by client transaction id request
                 var response = connection.PostCall<bool>("/api/Reverse/Client", cancellation, Configurations.Lang);
@@ -627,11 +582,10 @@ namespace ApiConnectionExample
                 if (RefreshToken(e))
                 {
                     //Make the same call again after restore the invalid token for new one
-                    ReimbursemetByClientTransactionId();
+                    ReimbursemetByClientTransactionId(clientId);
                 }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"{e.StatusCode } - {e.ErrorList.ElementAt(0).Message}");
-                Console.ResetColor();
+
+                PrintErrors(e);
             }
             catch (Exception e)
             {
@@ -668,9 +622,8 @@ namespace ApiConnectionExample
                     //Make the same call again after restore the invalid token for new one
                     Cancel(id);
                 }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Exception " + e.ErrorList.ElementAt(0).Message);
-                Console.ResetColor();
+
+                PrintErrors(e);
             }
             catch (Exception e)
             {
@@ -706,9 +659,8 @@ namespace ApiConnectionExample
                     //Make the same call again after restore the invalid token for new one
                     CancelByClientId(clientId);
                 }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Exception " + e.ErrorList.ElementAt(0).Message);
-                Console.ResetColor();
+
+                PrintErrors(e);
             }
             catch (Exception e)
             {
@@ -757,9 +709,8 @@ namespace ApiConnectionExample
                     //Make the same call again after restore the invalid token for new one
                     GetUserData(identifier, regionCode, byNickName);
                 }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Exception " + e.ErrorList.ElementAt(0).Message);
-                Console.ResetColor();
+
+                PrintErrors(e);
 
             }
             catch (Exception e)
@@ -783,16 +734,14 @@ namespace ApiConnectionExample
                 var response = connection.GetToken(ruc);
                 //Replace old tokens by new one
                 Configurations.Token = response.Access_Token;
-
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
                 Console.WriteLine("token " + response.Access_Token);
                 Console.ResetColor();
             }
             catch (PayPhoneWebException e)
             {
                 //All call make to PayPhone need to be inside a try catch
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Exception " + e.ErrorList.ElementAt(0).Message);
-                Console.ResetColor();
+                PrintErrors(e);
             }
             catch (Exception e)
             {
@@ -801,6 +750,32 @@ namespace ApiConnectionExample
                 Console.WriteLine("Exception " + e.Message);
                 Console.ResetColor();
             }
+        }
+
+        /// <summary>
+        /// Imprime los mensajes de error retornados por el servicio
+        /// </summary>
+        /// <param name="e"></param>
+        private static void PrintErrors(PayPhoneWebException e) {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"{e.StatusCode} - {e.Error.Message} ");
+            if (e.Error.Errors != null && e.Error.Errors.Count > 0)
+            {
+                foreach (var item in e.Error.Errors)
+                {
+                    if (item.ErrorDescriptions == null || item.ErrorDescriptions.Length <= 0)
+                    {
+                        Console.WriteLine($"{item.Message}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"({item.Message} - {string.Join(";", item.ErrorDescriptions)})");
+                    }
+                    
+                }
+            }
+            
+            Console.ResetColor();
         }
         #endregion
 

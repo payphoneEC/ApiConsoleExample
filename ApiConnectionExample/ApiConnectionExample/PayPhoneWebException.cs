@@ -25,11 +25,11 @@ namespace ApiConnectionExample
         /// <param name="message"></param>
         /// <param name="statusCode"></param>
         /// <param name="errors"></param>
-        public PayPhoneWebException(string message, string statusCode, List<ErrorResponseModel> errors)
+        public PayPhoneWebException(string message, string statusCode, ErrorResponseModel errors)
             : base(message)
         {
             StatusCode = statusCode;
-            ErrorList = errors;
+            Error = errors;
         }
 
         /// <summary>
@@ -84,7 +84,7 @@ namespace ApiConnectionExample
         /// <summary>
         /// 
         /// </summary>
-        public List<ErrorResponseModel> ErrorList { get; set; }
+        public ErrorResponseModel Error { get; set; }
     }
 
     

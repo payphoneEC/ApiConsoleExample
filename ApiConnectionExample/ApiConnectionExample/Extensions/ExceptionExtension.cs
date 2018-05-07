@@ -19,7 +19,7 @@ namespace ApiConnectionExample.Extensions
             {
                 var postResult = new StreamReader(webExc.Response.GetResponseStream());
                 var responseErrorForServer = postResult.ReadToEnd();
-                var resultError = json.JsonToObject<List<ErrorResponseModel>>(responseErrorForServer);
+                var resultError = json.JsonToObject<ErrorResponseModel>(responseErrorForServer);
                 var response = (HttpWebResponse)webExc.Response;
                 postResult.Close();
                 return new PayPhoneWebException(null, response.StatusCode.ToString(), resultError);
@@ -27,7 +27,7 @@ namespace ApiConnectionExample.Extensions
             catch (Exception)
             {
                 var response = (HttpWebResponse)webExc.Response;
-                var listError = new List<ErrorResponseModel>();
+                var listError = new List<ErrorModel>();
                 var error = new ErrorResponseModel
                 {
                     Message = webExc.Message
@@ -35,23 +35,23 @@ namespace ApiConnectionExample.Extensions
 
                 if (response != null)
                 {
+                    error.ErrorCode = response.StatusCode.ToString();
+                    var err = new ErrorModel();
                     switch (response.StatusCode)
                     {
                         case HttpStatusCode.Forbidden:
-                            error.Message = "Url no disponible, por favor contacte con el soporte técnico.";
+                            err.Message = "Url no disponible, por favor contacte con el soporte técnico.";
                             break;
                         default:
                             break;
                     }
 
-                    listError.Add(error);
+                    error.Errors.Add(err);
 
-                    return new PayPhoneWebException(null, response.StatusCode.ToString(), listError);
+                    return new PayPhoneWebException(null, response.StatusCode.ToString(), error);
                 }
 
-                listError.Add(error);
-
-                return new PayPhoneWebException(null, "0", listError);
+                return new PayPhoneWebException(null, "0", error);
 
             }
         }

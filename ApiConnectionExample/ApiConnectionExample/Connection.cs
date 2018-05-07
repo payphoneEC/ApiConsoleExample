@@ -12,6 +12,11 @@ namespace ApiConnectionExample
     {
         private readonly JsonConversion _jsonConversion;
 
+        public Connection()
+        {
+            _jsonConversion = new JsonConversion();
+        }
+
         /// <summary>
         /// Realiza una llamada GET
         /// </summary>
@@ -129,7 +134,7 @@ namespace ApiConnectionExample
                 var tokenRequest = new TokenRequestModel()
                 {
                     client_id = Configurations.ClientId,
-                    client_secret = Configurations.ClientSecret,
+                    client_secret = Configurations.KeySecret,
                     company_code = companyCode,
                     grant_type = "client_credentials"
                 };

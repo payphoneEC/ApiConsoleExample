@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ApiConnectionExample
 {
@@ -10,6 +6,12 @@ namespace ApiConnectionExample
     {
         static void Main(string[] args)
         {
+            //Add main options for the example
+            MainOptions.Options();
+
+
+
+            Console.ReadKey();
         }
     }
 }
