@@ -17,12 +17,7 @@ namespace ApiConnectionExample
         public static long Id;
         private static int _status = 1;
         public static long AnnulmentId;
-        private static long _reimbursmentId;
-        public static bool Approved;
-        private static string _extTxId = "";
-        private static string _ruc = "0190402452001"; //0190409759001
-
-        
+        public static bool Approved;        
 
         #region Estos métodos lo pueden usar todos los comercios 
 
@@ -298,7 +293,7 @@ namespace ApiConnectionExample
                 if (e.StatusCode.Equals(HttpStatusCode.Unauthorized.ToString()))
                 {
                     //If status code is Unauthorized get a new token and replace 
-                    var token = connection.GetToken(_ruc);
+                    var token = connection.GetToken(Configurations.Ruc);
                     Configurations.Token = token.Access_Token;
                     return true;
                 }
