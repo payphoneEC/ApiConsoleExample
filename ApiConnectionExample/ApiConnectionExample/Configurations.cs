@@ -18,8 +18,8 @@
 
         public const string ClientId = "13M2HZCw8kG14SBhJWIFfw";
         public const string KeySecret = "UhvMYd5KEofAYhNH0SlQ";
-        //public const string ResourcePath = "https://pay-dev.payphone.com.ec";
-        public const string ResourcePath = "http://localhost:18728";
+        public const string ResourcePath = "https://pay-dev.payphone.com.ec";
+        //public const string ResourcePath = "http://localhost:18728";
 
     }
 }

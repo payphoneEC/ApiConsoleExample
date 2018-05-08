@@ -8,29 +8,33 @@ namespace ApiConnectionExample
         public static bool NewTransaction { get; set; }
 
         //Creaate a dummy data for send to PayPhone
-        private static readonly TransactionRequestModel Data = new TransactionRequestModel()
-        {
-            //Total amount to send
-            Amount = 100,
-            //Total amount of products that charge taxes without taxes
-            AmountWithTax = 89,
-            //Total amount of product that not charge taxes
-            AmountWithoutTax = 0,
-            //Total taxes generated for AmountWithTax
-            Tax = 11,
-            //Identifier of transaction for this example (is id of transaction in ower application) 
-            ClientTransactionId = Guid.NewGuid().ToString(),
-            //Time zone for application
-            TimeZone = -5,
-            //Latitude fr store
-            Lat = "-0.170315",
-            //Longitude for store
-            Lng = "-78.489632",
-            //Store id
-            //StoreId = "d8383302-7afe-4f45-8f91-df65995ed28a",
-            //StoreId = "f4781cf6-af17-46ac-ad22-ecbac1805836",
-            Email = "admin@livepayphone.com"
-        };
+        private static TransactionRequestModel Data = GenerateTx();
+
+        private static TransactionRequestModel GenerateTx() {
+            return new TransactionRequestModel()
+            {
+                //Total amount to send
+                Amount = 100,
+                //Total amount of products that charge taxes without taxes
+                AmountWithTax = 89,
+                //Total amount of product that not charge taxes
+                AmountWithoutTax = 0,
+                //Total taxes generated for AmountWithTax
+                Tax = 11,
+                //Identifier of transaction for this example (is id of transaction in ower application) 
+                ClientTransactionId = Guid.NewGuid().ToString(),
+                //Time zone for application
+                TimeZone = -5,
+                //Latitude fr store
+                Lat = "-0.170315",
+                //Longitude for store
+                Lng = "-78.489632",
+                //Store id
+                //StoreId = "d8383302-7afe-4f45-8f91-df65995ed28a",
+                //StoreId = "f4781cf6-af17-46ac-ad22-ecbac1805836",
+                Email = "admin@livepayphone.com"
+            };
+        }
 
         public static void Options()
         {
@@ -51,11 +55,17 @@ namespace ApiConnectionExample
             Console.WriteLine("\t 7) For get user data by phone number");
             Console.WriteLine("\t 8) For get user data by nickname");
 
+            //Console.ForegroundColor = ConsoleColor.DarkYellow;
+            //Console.WriteLine("To use this options first put in contact with us at 072810285");
+            //Console.WriteLine("This options are not available for all companies");
+            //Console.ResetColor();
+
             ConsoleKeyInfo key;
             bool condition = false;
 
             do
             {
+                condition = false;
                 Console.Write("Select one option: ");
                 key = Console.ReadKey(false);
                 Console.WriteLine();
@@ -186,7 +196,7 @@ namespace ApiConnectionExample
                         break;
                 }
                 condition = !condition && ((key.Key != ConsoleKey.D1 && key.Key != ConsoleKey.NumPad1)
-                                //|| (key.Key != ConsoleKey.D2 && key.Key != ConsoleKey.NumPad2)
+                                || (key.Key != ConsoleKey.D2 && key.Key != ConsoleKey.NumPad2)
                                 || (key.Key != ConsoleKey.D3 && key.Key != ConsoleKey.NumPad3)
                                 || (key.Key != ConsoleKey.Escape)
                                 || (key.Key != ConsoleKey.D4 && key.Key != ConsoleKey.NumPad4)
@@ -204,6 +214,7 @@ namespace ApiConnectionExample
             if (NewTransaction)
             {
                 Console.Clear();
+                condition = false;
                 Options();
             }
         }
@@ -215,23 +226,20 @@ namespace ApiConnectionExample
                 //Add options to use this example
                 Console.WriteLine("\t 1) For get status of transaction");
                 Console.WriteLine("\t 2) For transaction status by appId");
+                Console.WriteLine("\t 7) For cancel transaction");
+                Console.WriteLine("\t 8) For cancel transaction by client transaction id");
                 //To use these options you must first obtain the status of the transaction and that it be approved
                 Console.ForegroundColor = ConsoleColor.DarkYellow;
-                Console.WriteLine("\t To use these options you must firts press the option one for get transaction status");
+                Console.WriteLine("\t To use these options you must firts approve the transaction");
                 Console.WriteLine("\t 3) For annulment transaction");
                 Console.WriteLine("\t 4) For get annulment status");
                 Console.WriteLine("\t 5) For reimbursement transaction");                
-                Console.WriteLine("\t 6) For reimbursement transaction by client id");
-                Console.WriteLine("\t 7) For cancel transaction");
-                Console.WriteLine("\t 8) For cancel transaction by client transaction id");
+                Console.WriteLine("\t 6) For reimbursement transaction by client id");                
                 Console.ResetColor();
-                //End
-                
-                         
+                //End    
                 Console.WriteLine("\t Ctrl + N) For new transaction press Ctrl + N");
 
                 ConsoleKeyInfo cky;
-
 
                 do
                 {
@@ -312,17 +320,12 @@ namespace ApiConnectionExample
                         case ConsoleKey.N:
                             if ((cky.Modifiers & ConsoleModifiers.Control) != 0)
                             {
-                                NewTransaction = true;
+                                NewTransaction = true;                                
+                                Data = GenerateTx();
                             }
                             break;
-
-
                     }
-
-
                 } while (cky.Key != ConsoleKey.Escape && !NewTransaction);
-
-
             }
         }
     }
