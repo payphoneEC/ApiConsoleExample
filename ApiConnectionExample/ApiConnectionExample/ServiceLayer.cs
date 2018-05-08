@@ -42,7 +42,18 @@ namespace ApiConnectionExample
             catch (PayPhoneWebException e)
             {
                 //All call make to PayPhone need to be inside a try catch
-                PrintErrors(e);
+                //Verify if error returned was Unhautorized and get new token
+                if (RefreshToken(e))
+                {
+                    //Make the same call again after restore the invalid token for new one
+                    GetRegions();
+                }
+                else
+                {
+                    //All call make to PayPhone need to be inside a try catch
+                    PrintErrors(e);
+                }
+                
             }
         }
 
