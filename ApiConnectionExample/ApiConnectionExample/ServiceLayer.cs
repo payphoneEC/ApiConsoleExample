@@ -17,7 +17,8 @@ namespace ApiConnectionExample
         public static long Id;
         private static int _status = 1;
         public static long AnnulmentId;
-        public static bool Approved;        
+        public static bool Approved;
+        private static int unauthorizedCount = 0;
 
         #region Estos métodos lo pueden usar todos los comercios 
 
@@ -300,14 +301,19 @@ namespace ApiConnectionExample
         {
             try
             {
-                //Check status code oofthe response
-                if (e.StatusCode.Equals(HttpStatusCode.Unauthorized.ToString()))
+                if (unauthorizedCount == 0)
                 {
-                    //If status code is Unauthorized get a new token and replace 
-                    var token = connection.GetToken(Configurations.Ruc);
-                    Configurations.Token = token.Access_Token;
-                    return true;
+                    //Check status code oofthe response
+                    if (e.StatusCode.Equals(HttpStatusCode.Unauthorized.ToString()))
+                    {
+                        //If status code is Unauthorized get a new token and replace 
+                        var token = connection.GetToken(Configurations.Ruc);
+                        Configurations.Token = token.Access_Token;
+                        unauthorizedCount++;
+                        return true;
+                    }
                 }
+                
                 return false;
             }
             catch (PayPhoneWebException exc)
